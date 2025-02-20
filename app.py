@@ -1,11 +1,12 @@
 import streamlit as st
 from datetime import datetime
 
-# 讀取 secrets 檔案中的設定值
-creds = st.secrets.credentials
+# 讀取 secrets 中的兩組憑證
+admin_creds = st.secrets.admin
+user_creds = st.secrets.user
 
-# 定義檢查目前日期是否在使用期間內的函數
 def is_within_date_range(start_date_str, end_date_str):
+    """檢查目前日期是否在允許使用期間內"""
     current_date = datetime.now().date()
     start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
     end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
@@ -13,6 +14,9 @@ def is_within_date_range(start_date_str, end_date_str):
 
 # 頁面標題
 st.title("insurtech 用戶登入系統")
+
+# 身分選擇 (管理者或一般用戶)
+role = st.sidebar.selectbox("請選擇您的身份", options=["admin", "user"])
 
 # 輸入登入資訊
 st.subheader("請輸入您的登入資訊")
@@ -22,16 +26,32 @@ input_login_password = st.text_input("登入密碼", type="password")
 
 # 登入按鈕
 if st.button("登入"):
-    # 檢查用戶名稱、登入帳號與登入密碼是否正確
+    # 根據所選身分讀取對應的憑證
+    if role == "admin":
+        creds = admin_creds
+    else:
+        creds = user_creds
+
+    # 檢查用戶名稱、登入帳號與密碼是否正確
     if (input_username == creds.username and 
         input_login_account == creds.login_account and 
         input_login_password == creds.login_password):
         
-        # 檢查目前日期是否在允許使用期間內
+        # 檢查目前日期是否在允許的使用期間內
         if is_within_date_range(creds.start_date, creds.end_date):
-            st.success("登入成功！")
+            st.success(f"{role} 登入成功！")
             st.write("歡迎, ", input_username)
-            st.write("系統使用期間：", creds.start_date, "到", creds.end_date)
+            st.write("使用期間：", creds.start_date, "到", creds.end_date)
+            
+            # 根據身份顯示不同的功能介面
+            if role == "admin":
+                st.subheader("管理者專區")
+                st.write("這裡您可以新增、修改、刪除商品資料。")
+                # 在此可以加入管理者專屬的功能，例如表單、編輯介面等
+            else:
+                st.subheader("用戶專區")
+                st.write("這裡僅供搜尋和閱讀商品資料。")
+                # 在此可以加入搜尋、篩選及商品展示功能
         else:
             st.error("登入失敗：目前不在允許的使用日期範圍內。")
     else:
