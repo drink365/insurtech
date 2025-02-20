@@ -92,7 +92,10 @@ def admin_ui():
                     "90歲保額": coverage_90,
                     "內含豁免": waiver
                 }
-                st.session_state.df_products = st.session_state.df_products.append(new_row, ignore_index=True)
+                new_row_df = pd.DataFrame([new_row])
+                st.session_state.df_products = pd.concat(
+                    [st.session_state.df_products, new_row_df], ignore_index=True
+                )
                 st.success("商品新增成功！")
                 
     elif action == "修改商品":
@@ -169,7 +172,7 @@ def user_ui():
 if not st.session_state.logged_in:
     login_ui()
 else:
-    # 顯示登入後歡迎訊息（可加入登出功能）
+    # 顯示登入後歡迎訊息與登出功能
     st.sidebar.write("已登入：", st.session_state.creds.username)
     if st.sidebar.button("登出"):
         st.session_state.logged_in = False
