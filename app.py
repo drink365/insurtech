@@ -55,8 +55,7 @@ def login_ui():
                 st.session_state.logged_in = True
                 st.session_state.user_role = role
                 st.session_state.creds = creds
-                # 登入成功後重新執行，直接進入後續介面
-                st.experimental_rerun()
+                # 移除 st.experimental_rerun()，因為按鈕觸發後程式會自動重新執行
             else:
                 st.error("登入失敗：目前不在允許的使用日期範圍內。")
         else:
