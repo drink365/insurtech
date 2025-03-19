@@ -75,15 +75,15 @@ else:
                 st.success("保單新增成功！")
 
     # 用戶推薦保單
-    st.header("保單推薦")
-    age = st.number_input("年齡", 1, 85, 30, key="age_recommend")
-    gender = st.selectbox("性別", ["男性", "女性"], key="gender_recommend")
-    currency = st.selectbox("幣別", ["台幣", "美元"], key="currency_recommend")
-    payment_term = st.text_input("繳費年期", key="payment_term_recommend")
-    term = st.number_input("保障年期", 1, 50, 20, key="term_recommend")
+st.header("保單推薦")
+age = st.number_input("年齡", 1, 85, 30, key="age_recommend")
+gender = st.selectbox("性別", ["男性", "女性"], key="gender_recommend")
+currency = st.selectbox("幣別", ["台幣", "美元"], key="currency_recommend")
+payment_term = st.text_input("繳費年期", key="payment_term_recommend")
+term = st.number_input("保障年期", 1, 50, 20, key="term_recommend")
 
-    filtered_policies = policies.query(
-        "最低年齡 <= @age <= 最高年齡 and (性別 == @gender or 性別 == '所有性別') and 幣別 == @currency and 繳費年期 == @payment_term and 保障年期 == @term"
-    ).sort_values(by="保費")
+filtered_policies = policies.query(
+    "`最低年齡` <= @age <= `最高年齡` and (`性別` == @gender or `性別` == '所有性別') and `幣別` == @currency and `繳費年期` == @payment_term and `保障年期` == @term"
+).sort_values(by="保費")
 
-    st.dataframe(filtered_policies.drop(columns=["保單編號"], errors="ignore"))
+st.dataframe(filtered_policies)
