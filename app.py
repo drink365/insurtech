@@ -47,37 +47,42 @@ else:
     if st.session_state["role"] == "admin":
         st.header("保單資料管理")
 
+        # 新增一個「複製」勾選欄位
+        if "複製" not in policies.columns:
+            policies["複製"] = False
+
         edited_policies = st.data_editor(
             policies,
             num_rows="dynamic",
             column_config={
-                "繳費年期": st.column_config.NumberColumn(help="單一繳費年期（數字，不含「年」）")
+                "繳費年期": st.column_config.NumberColumn(help="單一繳費年期（數字，不含「年」）"),
+                "複製": st.column_config.CheckboxColumn(help="勾選欲複製的保單資料")
             },
             use_container_width=True,
             key="policy_editor"
         )
 
-        # 複製及儲存按鈕
         col1, col2 = st.columns(2)
-        
+
         with col1:
             if st.button("儲存修改"):
-                edited_policies.to_csv("policies.csv", index=False)
+                edited_policies.drop(columns=["複製"]).to_csv("policies.csv", index=False)
                 st.success("保單資料已更新！")
                 st.cache_data.clear()
                 st.rerun()
 
         with col2:
-            if st.button("複製選取的保單"):
-                if st.session_state["policy_editor"]["selected_rows"]:
-                    rows_to_copy = edited_policies.iloc[st.session_state["policy_editor"]["selected_rows"]]
+            if st.button("複製勾選的保單"):
+                rows_to_copy = edited_policies[edited_policies["複製"]].copy()
+                if not rows_to_copy.empty:
+                    rows_to_copy["複製"] = False
                     updated_policies = pd.concat([edited_policies, rows_to_copy], ignore_index=True)
-                    updated_policies.to_csv("policies.csv", index=False)
-                    st.success("已成功複製所選保單！")
+                    updated_policies.drop(columns=["複製"]).to_csv("policies.csv", index=False)
+                    st.success("成功複製勾選的保單！")
                     st.cache_data.clear()
                     st.rerun()
                 else:
-                    st.warning("請先打勾選取要複製的保單！")
+                    st.warning("請至少勾選一筆欲複製的保單！")
 
     # 用戶推薦保單
     st.header("保單推薦")
