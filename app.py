@@ -64,10 +64,9 @@ else:
     gender = st.selectbox("性別", ["男性", "女性"], key="gender_recommend")
     currency = st.selectbox("幣別", ["台幣", "美元"], key="currency_recommend")
     payment_term = st.text_input("繳費年期", key="payment_term_recommend")
-    term = st.number_input("保障年期", 1, 50, 20, key="term_recommend")
 
     filtered_policies = policies.query(
-        "最低年齡 <= @age <= 最高年齡 and (性別 == @gender or 性別 == '不限') and 幣別 == @currency and 繳費年期 == @payment_term and 保障年期 == @term"
+        "最低年齡 <= @age <= 最高年齡 and (性別 == @gender or 性別 == '不限') and 幣別 == @currency and 繳費年期 == @payment_term"
     ).sort_values(by="保費")
 
     st.dataframe(filtered_policies)
