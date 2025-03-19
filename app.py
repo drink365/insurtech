@@ -24,6 +24,8 @@ def login(username, password):
 # 初始化登入狀態
 if "role" not in st.session_state:
     st.session_state["role"] = None
+if "edit_mode" not in st.session_state:
+    st.session_state["edit_mode"] = False
 
 if st.session_state["role"] is None:
     st.header("登入")
@@ -47,60 +49,75 @@ else:
     if st.session_state["role"] == "admin":
         st.header("保單資料管理")
 
-        # 新增一個「複製」勾選欄位（僅限管理介面）
-        if "複製" not in policies.columns:
-            policies["複製"] = False
+        if st.button("進入編輯模式"):
+            st.session_state["edit_mode"] = True
+            st.rerun()
 
-        edited_policies = st.data_editor(
-            policies,
-            num_rows="dynamic",
-            column_config={
-                "繳費年期": st.column_config.NumberColumn(help="單一繳費年期（數字，不含「年」）"),
-                "複製": st.column_config.CheckboxColumn(help="勾選欲複製的保單資料")
-            },
-            use_container_width=True,
-            key="policy_editor"
-        )
+        if st.session_state["edit_mode"]:
+            # 編輯模式
+            if "複製" not in policies.columns:
+                policies["複製"] = False
 
-        col1, col2 = st.columns(2)
+            edited_policies = st.data_editor(
+                policies,
+                num_rows="dynamic",
+                column_config={
+                    "繳費年期": st.column_config.NumberColumn(help="單一繳費年期（數字，不含「年」）"),
+                    "複製": st.column_config.CheckboxColumn(help="勾選欲複製的保單資料")
+                },
+                use_container_width=True,
+                key="policy_editor"
+            )
 
-        with col1:
-            if st.button("儲存修改"):
-                edited_policies.drop(columns=["複製"]).to_csv("policies.csv", index=False)
-                st.success("保單資料已更新！")
-                st.cache_data.clear()
-                st.rerun()
+            col1, col2, col3 = st.columns(3)
 
-        with col2:
-            if st.button("複製勾選的保單"):
-                rows_to_copy = edited_policies.loc[edited_policies["複製"] == True].copy()
-                if not rows_to_copy.empty:
-                    rows_to_copy["複製"] = False
-                    updated_policies = pd.concat([edited_policies, rows_to_copy], ignore_index=True)
-                    updated_policies.drop(columns=["複製"]).to_csv("policies.csv", index=False)
-                    st.success("成功複製勾選的保單！")
+            with col1:
+                if st.button("儲存修改"):
+                    edited_policies.drop(columns=["複製"]).to_csv("policies.csv", index=False)
+                    st.success("保單資料已更新！")
                     st.cache_data.clear()
+                    st.session_state["edit_mode"] = False
                     st.rerun()
-                else:
-                    st.warning("請至少勾選一筆欲複製的保單！")
 
-    # 用戶推薦保單（移除『複製』欄位）
+            with col2:
+                if st.button("複製勾選的保單"):
+                    rows_to_copy = edited_policies.loc[edited_policies["複製"] == True].copy()
+                    if not rows_to_copy.empty:
+                        rows_to_copy["複製"] = False
+                        updated_policies = pd.concat([edited_policies, rows_to_copy], ignore_index=True)
+                        updated_policies.drop(columns=["複製"]).to_csv("policies.csv", index=False)
+                        st.success("成功複製勾選的保單！")
+                        st.cache_data.clear()
+                        st.rerun()
+                    else:
+                        st.warning("請至少勾選一筆欲複製的保單！")
+
+            with col3:
+                if st.button("退出編輯模式"):
+                    st.session_state["edit_mode"] = False
+                    st.rerun()
+
+        else:
+            # 一般顯示模式（可排序）
+            st.info("點擊欄位名稱可進行排序。")
+            policies_display = policies.drop(columns=["複製"], errors='ignore')
+            st.dataframe(policies_display, use_container_width=True)
+
+    # 用戶推薦保單
     st.header("保單推薦")
-    policies_display = policies.drop(columns=["複製"], errors='ignore')
-
     age = st.number_input("年齡", 1, 85, 30, key="age_recommend")
     gender = st.selectbox("性別", ["男性", "女性"], key="gender_recommend")
     currency = st.selectbox("幣別", ["台幣", "美元"], key="currency_recommend")
     payment_term = st.selectbox(
-        "繳費年期", sorted(policies_display["繳費年期"].unique()), key="payment_term_recommend"
+        "繳費年期", sorted(policies["繳費年期"].unique()), key="payment_term_recommend"
     )
 
-    filtered_policies = policies_display[
-        (policies_display["最低年齡"] <= age) &
-        (policies_display["最高年齡"] >= age) &
-        ((policies_display["性別"] == gender) | (policies_display["性別"] == "不限")) &
-        (policies_display["幣別"] == currency) &
-        (policies_display["繳費年期"].astype(str) == str(payment_term))
+    filtered_policies = policies[
+        (policies["最低年齡"] <= age) &
+        (policies["最高年齡"] >= age) &
+        ((policies["性別"] == gender) | (policies["性別"] == "不限")) &
+        (policies["幣別"] == currency) &
+        (policies["繳費年期"].astype(str) == str(payment_term))
     ].sort_values(by="保費")
 
     st.dataframe(filtered_policies.reset_index(drop=True))
