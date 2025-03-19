@@ -47,7 +47,7 @@ else:
     if st.session_state["role"] == "admin":
         st.header("保單資料管理")
 
-        # 新增一個「複製」勾選欄位
+        # 新增一個「複製」勾選欄位（僅限管理介面）
         if "複製" not in policies.columns:
             policies["複製"] = False
 
@@ -73,7 +73,6 @@ else:
 
         with col2:
             if st.button("複製勾選的保單"):
-                # 關鍵修正行在這裡！
                 rows_to_copy = edited_policies.loc[edited_policies["複製"] == True].copy()
                 if not rows_to_copy.empty:
                     rows_to_copy["複製"] = False
@@ -85,21 +84,23 @@ else:
                 else:
                     st.warning("請至少勾選一筆欲複製的保單！")
 
-    # 用戶推薦保單
+    # 用戶推薦保單（移除『複製』欄位）
     st.header("保單推薦")
+    policies_display = policies.drop(columns=["複製"], errors='ignore')
+
     age = st.number_input("年齡", 1, 85, 30, key="age_recommend")
     gender = st.selectbox("性別", ["男性", "女性"], key="gender_recommend")
     currency = st.selectbox("幣別", ["台幣", "美元"], key="currency_recommend")
     payment_term = st.selectbox(
-        "繳費年期", sorted(policies["繳費年期"].unique()), key="payment_term_recommend"
+        "繳費年期", sorted(policies_display["繳費年期"].unique()), key="payment_term_recommend"
     )
 
-    filtered_policies = policies[
-        (policies["最低年齡"] <= age) &
-        (policies["最高年齡"] >= age) &
-        ((policies["性別"] == gender) | (policies["性別"] == "不限")) &
-        (policies["幣別"] == currency) &
-        (policies["繳費年期"].astype(str) == str(payment_term))
+    filtered_policies = policies_display[
+        (policies_display["最低年齡"] <= age) &
+        (policies_display["最高年齡"] >= age) &
+        ((policies_display["性別"] == gender) | (policies_display["性別"] == "不限")) &
+        (policies_display["幣別"] == currency) &
+        (policies_display["繳費年期"].astype(str) == str(payment_term))
     ].sort_values(by="保費")
 
     st.dataframe(filtered_policies.reset_index(drop=True))
