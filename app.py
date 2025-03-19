@@ -2,19 +2,17 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 
-# 載入保單資料（含快取）
+# 快取讀取保單資料
 @st.cache_data
 def load_policies():
-    policies = pd.read_csv("policies.csv")
-    return policies
+    return pd.read_csv("policies.csv")
 
 policies = load_policies()
 
-# 讀取 secrets
+# 登入功能
 admin = st.secrets["users"]["admin"]
 user = st.secrets["users"]["user"]
 
-# 登入功能
 def login(username, password):
     current_date = datetime.now()
     if username == admin["login_account"] and password == admin["login_password"]:
@@ -23,11 +21,10 @@ def login(username, password):
         return "user" if datetime.strptime(user["start_date"], "%Y-%m-%d") <= current_date <= datetime.strptime(user["end_date"], "%Y-%m-%d") else "expired"
     return None
 
-# 初始化 session_state
+# 初始化登入
 if "role" not in st.session_state:
     st.session_state["role"] = None
 
-# 登入界面
 if st.session_state["role"] is None:
     st.header("登入")
     username = st.text_input("用戶名")
@@ -46,48 +43,41 @@ if st.session_state["role"] is None:
 else:
     st.title("壽險保單推薦引擎")
 
-    # 管理界面（僅限 admin）
+    # 管理介面（僅限 admin）
     if st.session_state["role"] == "admin":
         st.header("保單資料管理")
 
-        # 快速搜尋功能
-        search_term = st.text_input("快速搜尋（公司或商品名稱）")
-        if search_term:
-            displayed_policies = policies[
-                policies["公司名稱"].str.contains(search_term) | policies["商品名稱"].str.contains(search_term)
-            ]
-        else:
-            displayed_policies = policies
+        col1, col2 = st.columns([3, 1])
 
-        edited_policies = st.data_editor(
-            displayed_policies, num_rows="dynamic",
-            column_config={
-                "繳費年期": st.column_config.NumberColumn(help="單一繳費年期（數字，不含「年」）")
-            },
-            key="policy_editor"
-        )
-
-        col1, col2 = st.columns([1, 1])
+        # 主編輯表格
         with col1:
+            edited_policies = st.data_editor(
+                policies, num_rows="dynamic", use_container_width=True,
+                column_config={
+                    "繳費年期": st.column_config.NumberColumn(help="單一繳費年期（數字，不含「年」）")
+                },
+                key="policy_editor",
+            )
+
             if st.button("儲存修改"):
                 edited_policies.to_csv("policies.csv", index=False)
                 st.success("保單資料已更新！")
                 st.cache_data.clear()
                 st.rerun()
 
+        # 側邊欄複製功能
         with col2:
-            if st.button("複製選取的保單"):
-                if "selected_rows" in st.session_state["policy_editor"]:
-                    selected_idx = st.session_state["policy_editor"]["selected_rows"]
-                    if selected_idx:
-                        rows_to_copy = edited_policies.iloc[selected_idx]
-                        edited_policies = pd.concat([edited_policies, rows_to_copy], ignore_index=True)
-                        edited_policies.to_csv("policies.csv", index=False)
-                        st.success("已複製選取的保單！")
-                        st.cache_data.clear()
-                        st.rerun()
-                else:
-                    st.warning("請先選取要複製的保單！")
+            st.subheader("複製保單功能")
+            policy_options = policies["商品名稱"] + " (" + policies["公司名稱"] + ") - " + policies["繳費年期"].astype(str) + "年"
+            selected_policy = st.selectbox("選擇要複製的保單", policy_options)
+
+            if st.button("複製此保單"):
+                policy_to_copy = policies[policy_options == selected_policy].iloc[0].copy()
+                edited_policies = pd.concat([policies, pd.DataFrame([policy_to_copy])], ignore_index=True)
+                edited_policies.to_csv("policies.csv", index=False)
+                st.success(f"成功複製保單：{selected_policy}")
+                st.cache_data.clear()
+                st.rerun()
 
     # 用戶推薦保單
     st.header("保單推薦")
