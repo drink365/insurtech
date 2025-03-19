@@ -2,17 +2,6 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 
-# 加載保單數據
-policies = pd.read_csv("policies.csv")
-
-# 檢查「繳費年期」欄位是否存在
-if "繳費年期" not in policies.columns:
-    policies["繳費年期"] = "20年"
-
-# 移除 policy_id 欄位（若存在）
-if "policy_id" in policies.columns:
-    policies = policies.drop(columns=["policy_id"])
-
 # 讀取 secrets
 admin = st.secrets["users"]["admin"]
 user = st.secrets["users"]["user"]
@@ -49,14 +38,28 @@ if st.session_state["role"] is None:
 else:
     st.title("壽險保單推薦引擎")
 
+    # 保單資料載入函數 (確保資料為最新)
+    @st.cache_data
+    def load_policies():
+        policies = pd.read_csv("policies.csv")
+        if "繳費年期" not in policies.columns:
+            policies["繳費年期"] = "20年"
+        if "policy_id" in policies.columns:
+            policies = policies.drop(columns=["policy_id"])
+        return policies
+
+    policies = load_policies()
+
     # 管理界面（僅限 admin）
     if st.session_state["role"] == "admin":
         st.header("現有全部保單清單")
-        edited_policies = st.data_editor(policies, num_rows="dynamic")
+        edited_policies = st.data_editor(policies, num_rows="dynamic", key="policies_editor")
 
         if st.button("儲存修改"):
             edited_policies.to_csv("policies.csv", index=False)
             st.success("保單資料已更新！")
+            st.cache_data.clear()  # 清除快取資料
+            st.rerun()             # 重新載入頁面以更新顯示資料
 
     # 用戶推薦保單
     st.header("保單推薦")
