@@ -8,6 +8,8 @@ def load_policies():
     policies = pd.read_csv("policies.csv")
     if "policy_id" in policies.columns:
         policies = policies.drop(columns=["policy_id"])
+    if "繳費年期" in policies.columns:
+        policies = policies.drop(columns=["繳費年期"])
     return policies
 
 policies = load_policies()
@@ -67,7 +69,7 @@ else:
     payment_term = st.text_input("繳費年期", key="payment_term_recommend")
 
     filtered_policies = policies.query(
-        "最低年齡 <= @age <= 最高年齡 and (性別 == @gender or 性別 == '不限') and 幣別 == @currency and 年期選擇 == @payment_term"
+        "最低年齡 <= @age <= 最高年齡 and (性別 == @gender or 性別 == '不限') and 幣別 == @currency and 繳費年期.str.contains(@payment_term)"
     ).sort_values(by="保費")
 
     st.dataframe(filtered_policies)
