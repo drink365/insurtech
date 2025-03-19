@@ -98,10 +98,13 @@ else:
                     st.rerun()
 
         else:
-            # 一般顯示模式（可排序）
-            st.info("點擊欄位名稱可進行排序。")
+            # 一般顯示模式（可排序，隱藏序號且無提示字）
             policies_display = policies.drop(columns=["複製"], errors='ignore')
-            st.dataframe(policies_display, use_container_width=True)
+            st.dataframe(
+                policies_display,
+                hide_index=True,  # 隱藏序號欄位
+                use_container_width=True
+            )
 
     # 用戶推薦保單
     st.header("保單推薦")
@@ -120,4 +123,4 @@ else:
         (policies["繳費年期"].astype(str) == str(payment_term))
     ].sort_values(by="保費")
 
-    st.dataframe(filtered_policies.reset_index(drop=True))
+    st.dataframe(filtered_policies.reset_index(drop=True), use_container_width=True, hide_index=True)
