@@ -5,6 +5,10 @@ from datetime import datetime
 # 加載保單數據
 policies = pd.read_csv("policies.csv")
 
+# 如果 payment_term 欄位不存在，則添加並設置預設值
+if "payment_term" not in policies.columns:
+    policies["payment_term"] = "20年"  # 設置預設值
+
 # 讀取 secrets
 admin_username = st.secrets["users"]["admin"]["username"]
 admin_login_account = st.secrets["users"]["admin"]["login_account"]
