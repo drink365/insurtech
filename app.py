@@ -63,14 +63,31 @@ else:
             displayed_policies, num_rows="dynamic",
             column_config={
                 "繳費年期": st.column_config.NumberColumn(help="單一繳費年期（數字，不含「年」）")
-            }
+            },
+            key="policy_editor"
         )
 
-        if st.button("儲存修改"):
-            edited_policies.to_csv("policies.csv", index=False)
-            st.success("保單資料已更新！")
-            st.cache_data.clear()
-            st.rerun()
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            if st.button("儲存修改"):
+                edited_policies.to_csv("policies.csv", index=False)
+                st.success("保單資料已更新！")
+                st.cache_data.clear()
+                st.rerun()
+
+        with col2:
+            if st.button("複製選取的保單"):
+                if "selected_rows" in st.session_state["policy_editor"]:
+                    selected_idx = st.session_state["policy_editor"]["selected_rows"]
+                    if selected_idx:
+                        rows_to_copy = edited_policies.iloc[selected_idx]
+                        edited_policies = pd.concat([edited_policies, rows_to_copy], ignore_index=True)
+                        edited_policies.to_csv("policies.csv", index=False)
+                        st.success("已複製選取的保單！")
+                        st.cache_data.clear()
+                        st.rerun()
+                else:
+                    st.warning("請先選取要複製的保單！")
 
     # 用戶推薦保單
     st.header("保單推薦")
