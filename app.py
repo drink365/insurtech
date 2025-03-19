@@ -21,7 +21,7 @@ def login(username, password):
         return "user" if datetime.strptime(user["start_date"], "%Y-%m-%d") <= current_date <= datetime.strptime(user["end_date"], "%Y-%m-%d") else "expired"
     return None
 
-# 初始化登入
+# 初始化登入狀態
 if "role" not in st.session_state:
     st.session_state["role"] = None
 
@@ -47,37 +47,37 @@ else:
     if st.session_state["role"] == "admin":
         st.header("保單資料管理")
 
-        col1, col2 = st.columns([3, 1])
+        edited_policies = st.data_editor(
+            policies,
+            num_rows="dynamic",
+            column_config={
+                "繳費年期": st.column_config.NumberColumn(help="單一繳費年期（數字，不含「年」）")
+            },
+            use_container_width=True,
+            key="policy_editor"
+        )
 
-        # 主編輯表格
+        # 複製及儲存按鈕
+        col1, col2 = st.columns(2)
+        
         with col1:
-            edited_policies = st.data_editor(
-                policies, num_rows="dynamic", use_container_width=True,
-                column_config={
-                    "繳費年期": st.column_config.NumberColumn(help="單一繳費年期（數字，不含「年」）")
-                },
-                key="policy_editor",
-            )
-
             if st.button("儲存修改"):
                 edited_policies.to_csv("policies.csv", index=False)
                 st.success("保單資料已更新！")
                 st.cache_data.clear()
                 st.rerun()
 
-        # 側邊欄複製功能
         with col2:
-            st.subheader("複製保單功能")
-            policy_options = policies["商品名稱"] + " (" + policies["公司名稱"] + ") - " + policies["繳費年期"].astype(str) + "年"
-            selected_policy = st.selectbox("選擇要複製的保單", policy_options)
-
-            if st.button("複製此保單"):
-                policy_to_copy = policies[policy_options == selected_policy].iloc[0].copy()
-                edited_policies = pd.concat([policies, pd.DataFrame([policy_to_copy])], ignore_index=True)
-                edited_policies.to_csv("policies.csv", index=False)
-                st.success(f"成功複製保單：{selected_policy}")
-                st.cache_data.clear()
-                st.rerun()
+            if st.button("複製選取的保單"):
+                if st.session_state["policy_editor"]["selected_rows"]:
+                    rows_to_copy = edited_policies.iloc[st.session_state["policy_editor"]["selected_rows"]]
+                    updated_policies = pd.concat([edited_policies, rows_to_copy], ignore_index=True)
+                    updated_policies.to_csv("policies.csv", index=False)
+                    st.success("已成功複製所選保單！")
+                    st.cache_data.clear()
+                    st.rerun()
+                else:
+                    st.warning("請先打勾選取要複製的保單！")
 
     # 用戶推薦保單
     st.header("保單推薦")
