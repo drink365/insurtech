@@ -6,12 +6,13 @@ from datetime import datetime
 policies = pd.read_csv("policies.csv")
 
 # 檢查 payment_term 欄位
-if "payment_term" not in policies.columns:
-    policies["payment_term"] = "20年"
+if "繳費年期" not in policies.columns:
+    policies["繳費年期"] = "20年"
 
-# 移除 policy_id 欄位
+# 移除 policy_id 欄位（若存在）
 if "policy_id" in policies.columns:
     policies = policies.drop(columns=["policy_id"])
+
 
 # 重新命名欄位為中文
 policies.columns = ["公司名稱", "商品名稱", "年期選擇", "保單類型", "最低年齡", "最高年齡", "性別", "幣別", "繳費年期", "保障年期", "保額", "保費"]
