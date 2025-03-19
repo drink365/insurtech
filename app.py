@@ -19,8 +19,8 @@ if action == "新增保單":
         "product_name": st.sidebar.text_input("商品名稱", key="product_name_input"),
         "term_options": st.sidebar.text_input("年期選擇（用斜杠分隔）", key="term_options_input"),
         "policy_type": st.sidebar.text_input("保單類型", key="policy_type_input"),
-        "min_age": st.sidebar.number_input("最低年齡", min_value=18, max_value=100, key="min_age_input"),
-        "max_age": st.sidebar.number_input("最高年齡", min_value=18, max_value=100, key="max_age_input"),
+        "min_age": st.sidebar.number_input("最低年齡", min_value=18, max_value=110, key="min_age_input"),
+        "max_age": st.sidebar.number_input("最高年齡", min_value=18, max_value=110, value=110, key="max_age_input"),
         "gender": st.sidebar.selectbox("性別", ["男性", "女性"], key="gender_input"),
         "currency": st.sidebar.selectbox("幣別", ["台幣", "美元"], key="currency_input"),
         "term": st.sidebar.number_input("保障年期", min_value=1, max_value=50, key="term_input"),
@@ -44,8 +44,8 @@ elif action == "修改保單":
             "product_name": st.sidebar.text_input("商品名稱", value=policy["product_name"].values[0], key="product_name_edit_input"),
             "term_options": st.sidebar.text_input("年期選擇（用斜杠分隔）", value=policy["term_options"].values[0], key="term_options_edit_input"),
             "policy_type": st.sidebar.text_input("保單類型", value=policy["policy_type"].values[0], key="policy_type_edit_input"),
-            "min_age": st.sidebar.number_input("最低年齡", min_value=18, max_value=100, value=policy["min_age"].values[0], key="min_age_edit_input"),
-            "max_age": st.sidebar.number_input("最高年齡", min_value=18, max_value=100, value=policy["max_age"].values[0], key="max_age_edit_input"),
+            "min_age": st.sidebar.number_input("最低年齡", min_value=18, max_value=110, value=policy["min_age"].values[0], key="min_age_edit_input"),
+            "max_age": st.sidebar.number_input("最高年齡", min_value=18, max_value=110, value=110, key="max_age_edit_input"),
             "gender": st.sidebar.selectbox("性別", ["男性", "女性"], index=0 if policy["gender"].values[0] == "男性" else 1, key="gender_edit_input"),
             "currency": st.sidebar.selectbox("幣別", ["台幣", "美元"], index=0 if policy["currency"].values[0] == "台幣" else 1, key="currency_edit_input"),
             "term": st.sidebar.number_input("保障年期", min_value=1, max_value=50, value=policy["term"].values[0], key="term_edit_input"),
@@ -69,7 +69,7 @@ elif action == "刪除保單":
 
 # 用戶輸入
 st.header("保單推薦")
-age = st.number_input("年齡", min_value=18, max_value=100, value=30, key="age_input")
+age = st.number_input("年齡", min_value=18, max_value=110, value=30, key="age_input")
 gender = st.selectbox("性別", ["男性", "女性"], key="gender_recommend_input")
 currency = st.selectbox("幣別", ["台幣", "美元"], key="currency_recommend_input")
 term = st.number_input("保障年期", min_value=1, max_value=50, value=20, key="term_recommend_input")
