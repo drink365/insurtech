@@ -5,9 +5,16 @@ from datetime import datetime
 # 加載保單數據
 policies = pd.read_csv("policies.csv")
 
-# 檢查繳費年期欄位
-if "繳費年期" not in policies.columns:
-    policies["繳費年期"] = "20年"
+# 檢查 payment_term 欄位
+if "payment_term" not in policies.columns:
+    policies["payment_term"] = "20年"
+
+# 移除 policy_id 欄位
+if "policy_id" in policies.columns:
+    policies = policies.drop(columns=["policy_id"])
+
+# 重新命名欄位為中文
+policies.columns = ["公司名稱", "商品名稱", "年期選擇", "保單類型", "最低年齡", "最高年齡", "性別", "幣別", "繳費年期", "保障年期", "保額", "保費"]
 
 # 讀取 secrets
 admin = st.secrets["users"]["admin"]
@@ -48,10 +55,10 @@ else:
     # 管理界面（僅限 admin）
     if st.session_state["role"] == "admin":
         st.header("現有全部保單清單")
-        st.dataframe(policies.drop(columns=["保單編號"], errors="ignore"))
+        st.dataframe(policies)
 
         st.sidebar.title("保單管理")
-        action = st.sidebar.selectbox("選擇操作", ["新增保單"], key="admin_action")
+        action = st.sidebar.selectbox("選擇操作", ["新增保單", "修改保單", "刪除保單"], key="admin_action")
 
         if action == "新增保單":
             st.sidebar.header("新增保單")
@@ -75,15 +82,15 @@ else:
                 st.success("保單新增成功！")
 
     # 用戶推薦保單
-st.header("保單推薦")
-age = st.number_input("年齡", 1, 85, 30, key="age_recommend")
-gender = st.selectbox("性別", ["男性", "女性"], key="gender_recommend")
-currency = st.selectbox("幣別", ["台幣", "美元"], key="currency_recommend")
-payment_term = st.text_input("繳費年期", key="payment_term_recommend")
-term = st.number_input("保障年期", 1, 50, 20, key="term_recommend")
+    st.header("保單推薦")
+    age = st.number_input("年齡", 1, 85, 30, key="age_recommend")
+    gender = st.selectbox("性別", ["男性", "女性"], key="gender_recommend")
+    currency = st.selectbox("幣別", ["台幣", "美元"], key="currency_recommend")
+    payment_term = st.text_input("繳費年期", key="payment_term_recommend")
+    term = st.number_input("保障年期", 1, 50, 20, key="term_recommend")
 
-filtered_policies = policies.query(
-    "`最低年齡` <= @age <= `最高年齡` and (`性別` == @gender or `性別` == '所有性別') and `幣別` == @currency and `繳費年期` == @payment_term and `保障年期` == @term"
-).sort_values(by="保費")
+    filtered_policies = policies.query(
+        "最低年齡 <= @age <= 最高年齡 and (性別 == @gender or 性別 == '所有性別') and 幣別 == @currency and 繳費年期 == @payment_term and 保障年期 == @term"
+    ).sort_values(by="保費")
 
-st.dataframe(filtered_policies)
+    st.dataframe(filtered_policies)
