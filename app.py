@@ -39,7 +39,7 @@ if st.session_state["role"] is None:
         elif role:
             st.session_state["role"] = role
             st.success("登入成功！")
-            st.experimental_rerun()
+            st.rerun()
         else:
             st.error("用戶名或密碼錯誤！")
 else:
