@@ -2,16 +2,10 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 
-# 保單資料載入函數 (確保資料為最新)
+# 載入保單資料（含快取）
 @st.cache_data
 def load_policies():
     policies = pd.read_csv("policies.csv")
-    if "policy_id" in policies.columns:
-        policies = policies.drop(columns=["policy_id"])
-    # 調整欄位順序
-    cols = policies.columns.tolist()
-    cols.insert(2, cols.pop(cols.index("幣別")))
-    policies = policies[cols]
     return policies
 
 policies = load_policies()
@@ -54,8 +48,23 @@ else:
 
     # 管理界面（僅限 admin）
     if st.session_state["role"] == "admin":
-        st.header("現有全部保單清單")
-        edited_policies = st.data_editor(policies, num_rows="dynamic", key="policies_editor")
+        st.header("保單資料管理")
+
+        # 快速搜尋功能
+        search_term = st.text_input("快速搜尋（公司或商品名稱）")
+        if search_term:
+            displayed_policies = policies[
+                policies["公司名稱"].str.contains(search_term) | policies["商品名稱"].str.contains(search_term)
+            ]
+        else:
+            displayed_policies = policies
+
+        edited_policies = st.data_editor(
+            displayed_policies, num_rows="dynamic",
+            column_config={
+                "繳費年期": st.column_config.NumberColumn(help="單一繳費年期（數字，不含「年」）")
+            }
+        )
 
         if st.button("儲存修改"):
             edited_policies.to_csv("policies.csv", index=False)
@@ -68,14 +77,16 @@ else:
     age = st.number_input("年齡", 1, 85, 30, key="age_recommend")
     gender = st.selectbox("性別", ["男性", "女性"], key="gender_recommend")
     currency = st.selectbox("幣別", ["台幣", "美元"], key="currency_recommend")
-    payment_term = st.text_input("繳費年期", key="payment_term_recommend")
+    payment_term = st.selectbox(
+        "繳費年期", sorted(policies["繳費年期"].unique()), key="payment_term_recommend"
+    )
 
     filtered_policies = policies[
         (policies["最低年齡"] <= age) &
         (policies["最高年齡"] >= age) &
         ((policies["性別"] == gender) | (policies["性別"] == "不限")) &
         (policies["幣別"] == currency) &
-        (policies["繳費年期"].astype(str).str.split('/').apply(lambda x: payment_term in x))
+        (policies["繳費年期"].astype(str) == str(payment_term))
     ].sort_values(by="保費")
 
-    st.dataframe(filtered_policies)
+    st.dataframe(filtered_policies.reset_index(drop=True))
