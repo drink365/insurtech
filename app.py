@@ -47,6 +47,9 @@ else:
 
     # 管理界面（僅限 admin）
     if st.session_state["role"] == "admin":
+        st.header("現有全部保單清單")
+        st.dataframe(policies)
+
         st.sidebar.title("保單管理")
         action = st.sidebar.selectbox("選擇操作", ["新增保單", "修改保單", "刪除保單"], key="admin_action")
 
