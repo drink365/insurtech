@@ -1,197 +1,91 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime
 
-# --------------------------
-# 初始化 Session State 變數
-# --------------------------
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-    st.session_state.user_role = None  # "admin" 或 "user"
-    st.session_state.creds = None
+# 標題
+st.title("壽險保單推薦引擎")
 
-# --------------------------
-# 讀取 secrets 憑證設定
-# --------------------------
-admin_creds = st.secrets.admin
-user_creds = st.secrets.user
+# 加載保單數據
+policies = pd.read_csv("policies.csv")
 
-def is_within_date_range(start_date_str, end_date_str):
-    """檢查目前日期是否在允許使用期間內"""
-    current_date = datetime.now().date()
-    start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
-    end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
-    return start_date <= current_date <= end_date
+# 管理界面
+st.sidebar.title("保單管理")
+action = st.sidebar.selectbox("選擇操作", ["新增保單", "修改保單", "刪除保單"])
 
-# --------------------------
-# 初始化保險商品比較表資料（存放於 Session State）
-# --------------------------
-if "df_products" not in st.session_state:
-    st.session_state.df_products = pd.DataFrame(
-        columns=["公司", "商品", "幣別", "年期", "保戶年齡", "保戶性別", "首年保費", "總繳保費", "90歲保額", "CP值%"]
-    )
+if action == "新增保單":
+    st.sidebar.header("新增保單")
+    new_policy = {
+        "policy_id": st.sidebar.number_input("保單編號", value=len(policies) + 1),
+        "company": st.sidebar.text_input("公司名稱"),
+        "product_name": st.sidebar.text_input("商品名稱"),
+        "term_options": st.sidebar.text_input("年期選擇（用斜杠分隔）"),
+        "policy_type": st.sidebar.text_input("保單類型"),
+        "min_age": st.sidebar.number_input("最低年齡", min_value=18, max_value=100),
+        "max_age": st.sidebar.number_input("最高年齡", min_value=18, max_value=100),
+        "gender": st.sidebar.selectbox("性別", ["男性", "女性"]),
+        "currency": st.sidebar.selectbox("幣別", ["台幣", "美元"]),
+        "term": st.sidebar.number_input("保障年期", min_value=1, max_value=50),
+        "coverage": st.sidebar.number_input("保額", min_value=100000),
+        "premium": st.sidebar.number_input("保費", min_value=0)
+    }
+    if st.sidebar.button("新增"):
+        policies = policies.append(new_policy, ignore_index=True)
+        policies.to_csv("policies.csv", index=False)
+        st.success("保單新增成功！")
 
-# --------------------------
-# 登入介面 (未登入時顯示)
-# --------------------------
-def login_ui():
-    st.title("保險商品比較表 登入")
-    # 身份選擇 (在側邊欄)
-    role = st.sidebar.selectbox("請選擇您的身份", options=["admin", "user"])
-    
-    st.subheader("請輸入您的登入資訊")
-    input_login_account = st.text_input("登入帳號")
-    input_login_password = st.text_input("登入密碼", type="password")
-    
-    if st.button("登入"):
-        # 根據所選身份讀取對應的憑證
-        creds = admin_creds if role == "admin" else user_creds
-        if input_login_account == creds.login_account and input_login_password == creds.login_password:
-            if is_within_date_range(creds.start_date, creds.end_date):
-                st.success(f"{role} 登入成功！")
-                st.session_state.logged_in = True
-                st.session_state.user_role = role
-                st.session_state.creds = creds
-            else:
-                st.error("登入失敗：目前不在允許的使用日期範圍內。")
-        else:
-            st.error("登入失敗：請確認登入帳號及登入密碼是否正確。")
-
-# --------------------------
-# 管理者專區：商品管理介面
-# --------------------------
-def admin_ui():
-    st.title("保險商品比較表 - 管理者專區")
-    st.write("歡迎，", st.session_state.creds.username)
-    # 提供登出按鈕
-    if st.sidebar.button("登出"):
-        st.session_state.logged_in = False
-        st.session_state.user_role = None
-        st.session_state.creds = None
-        st.experimental_rerun()
-        
-    # 選擇操作項目
-    action = st.selectbox("選擇操作", options=["新增商品", "修改商品", "刪除商品", "讀取商品"])
-    
-    if action == "新增商品":
-        st.markdown("### 新增商品")
-        with st.form("新增商品表單"):
-            company = st.text_input("公司")
-            product = st.text_input("商品")
-            currency = st.selectbox("幣別", options=["USD", "TWD"])
-            term = st.number_input("年期", min_value=1, max_value=100, value=10)
-            insured_age = st.number_input("保戶年齡", min_value=0, value=30)
-            insured_gender = st.selectbox("保戶性別", options=["Male", "Female"])
-            first_premium = st.number_input("首年保費", min_value=0.0, value=0.0)
-            total_premium = st.number_input("總繳保費", min_value=0.0, value=0.0)
-            coverage_90 = st.number_input("90歲保額", min_value=0.0, value=0.0)
-            cp_value = st.number_input("CP值%", min_value=0.0, value=0.0)
-            submitted = st.form_submit_button("新增")
-            if submitted:
-                new_row = {
-                    "公司": company,
-                    "商品": product,
-                    "幣別": currency,
-                    "年期": term,
-                    "保戶年齡": insured_age,
-                    "保戶性別": insured_gender,
-                    "首年保費": first_premium,
-                    "總繳保費": total_premium,
-                    "90歲保額": coverage_90,
-                    "CP值%": cp_value
-                }
-                new_row_df = pd.DataFrame([new_row])
-                st.session_state.df_products = pd.concat(
-                    [st.session_state.df_products, new_row_df], ignore_index=True
-                )
-                st.success("商品新增成功！")
-                
-    elif action == "修改商品":
-        st.markdown("### 修改商品")
-        if st.session_state.df_products.empty:
-            st.warning("目前沒有商品資料可供修改。")
-        else:
-            selected_index = st.selectbox(
-                "選擇要修改的商品",
-                options=st.session_state.df_products.index,
-                format_func=lambda x: f"{st.session_state.df_products.loc[x, '公司']} - {st.session_state.df_products.loc[x, '商品']}"
-            )
-            current_data = st.session_state.df_products.loc[selected_index]
-            with st.form("修改商品表單"):
-                company = st.text_input("公司", value=current_data["公司"])
-                product = st.text_input("商品", value=current_data["商品"])
-                currency = st.selectbox("幣別", options=["USD", "TWD"],
-                                        index=0 if current_data["幣別"]=="USD" else 1)
-                term = st.number_input("年期", min_value=1, max_value=100, value=int(current_data["年期"]))
-                insured_age = st.number_input("保戶年齡", min_value=0, value=int(current_data["保戶年齡"]))
-                insured_gender = st.selectbox("保戶性別", options=["Male", "Female"],
-                                              index=0 if current_data["保戶性別"]=="Male" else 1)
-                first_premium = st.number_input("首年保費", min_value=0.0, value=float(current_data["首年保費"]))
-                total_premium = st.number_input("總繳保費", min_value=0.0, value=float(current_data["總繳保費"]))
-                coverage_90 = st.number_input("90歲保額", min_value=0.0, value=float(current_data["90歲保額"]))
-                cp_value = st.number_input("CP值%", min_value=0.0, value=float(current_data["CP值%"]))
-                submitted = st.form_submit_button("修改")
-                if submitted:
-                    st.session_state.df_products.loc[selected_index] = {
-                        "公司": company,
-                        "商品": product,
-                        "幣別": currency,
-                        "年期": term,
-                        "保戶年齡": insured_age,
-                        "保戶性別": insured_gender,
-                        "首年保費": first_premium,
-                        "總繳保費": total_premium,
-                        "90歲保額": coverage_90,
-                        "CP值%": cp_value
-                    }
-                    st.success("商品修改成功！")
-    
-    elif action == "刪除商品":
-        st.markdown("### 刪除商品")
-        if st.session_state.df_products.empty:
-            st.warning("目前沒有商品資料可供刪除。")
-        else:
-            selected_index = st.selectbox(
-                "選擇要刪除的商品",
-                options=st.session_state.df_products.index,
-                format_func=lambda x: f"{st.session_state.df_products.loc[x, '公司']} - {st.session_state.df_products.loc[x, '商品']}"
-            )
-            if st.button("刪除商品"):
-                st.session_state.df_products = st.session_state.df_products.drop(selected_index).reset_index(drop=True)
-                st.success("商品刪除成功！")
-    
-    elif action == "讀取商品":
-        st.markdown("### 目前商品資料")
-        st.dataframe(st.session_state.df_products)
-
-# --------------------------
-# 使用者專區：僅讀取商品列表
-# --------------------------
-def user_ui():
-    st.title("保險商品比較表 - 使用者專區")
-    st.write("歡迎，", st.session_state.creds.username)
-    if st.sidebar.button("登出"):
-        st.session_state.logged_in = False
-        st.session_state.user_role = None
-        st.session_state.creds = None
-        st.experimental_rerun()
-    st.markdown("### 商品列表")
-    search_term = st.text_input("請輸入商品名稱關鍵字以搜尋")
-    if search_term:
-        filtered_df = st.session_state.df_products[
-            st.session_state.df_products["商品"].str.contains(search_term, case=False, na=False)
-        ]
+elif action == "修改保單":
+    st.sidebar.header("修改保單")
+    policy_id = st.sidebar.number_input("輸入要修改的保單編號", min_value=1, max_value=len(policies))
+    policy = policies[policies["policy_id"] == policy_id]
+    if not policy.empty:
+        st.sidebar.write("當前保單資訊：", policy)
+        updated_policy = {
+            "policy_id": policy_id,
+            "company": st.sidebar.text_input("公司名稱", value=policy["company"].values[0]),
+            "product_name": st.sidebar.text_input("商品名稱", value=policy["product_name"].values[0]),
+            "term_options": st.sidebar.text_input("年期選擇（用斜杠分隔）", value=policy["term_options"].values[0]),
+            "policy_type": st.sidebar.text_input("保單類型", value=policy["policy_type"].values[0]),
+            "min_age": st.sidebar.number_input("最低年齡", min_value=18, max_value=100, value=policy["min_age"].values[0]),
+            "max_age": st.sidebar.number_input("最高年齡", min_value=18, max_value=100, value=policy["max_age"].values[0]),
+            "gender": st.sidebar.selectbox("性別", ["男性", "女性"], index=0 if policy["gender"].values[0] == "男性" else 1),
+            "currency": st.sidebar.selectbox("幣別", ["台幣", "美元"], index=0 if policy["currency"].values[0] == "台幣" else 1),
+            "term": st.sidebar.number_input("保障年期", min_value=1, max_value=50, value=policy["term"].values[0]),
+            "coverage": st.sidebar.number_input("保額", min_value=100000, value=policy["coverage"].values[0]),
+            "premium": st.sidebar.number_input("保費", min_value=0, value=policy["premium"].values[0])
+        }
+        if st.sidebar.button("修改"):
+            policies.loc[policies["policy_id"] == policy_id] = pd.Series(updated_policy)
+            policies.to_csv("policies.csv", index=False)
+            st.success("保單修改成功！")
     else:
-        filtered_df = st.session_state.df_products
-    st.dataframe(filtered_df)
+        st.sidebar.error("找不到該保單編號！")
 
-# --------------------------
-# 主程式流程
-# --------------------------
-if not st.session_state.logged_in:
-    login_ui()
-else:
-    if st.session_state.user_role == "admin":
-        admin_ui()
-    else:
-        user_ui()
+elif action == "刪除保單":
+    st.sidebar.header("刪除保單")
+    policy_id = st.sidebar.number_input("輸入要刪除的保單編號", min_value=1, max_value=len(policies))
+    if st.sidebar.button("刪除"):
+        policies = policies[policies["policy_id"] != policy_id]
+        policies.to_csv("policies.csv", index=False)
+        st.success("保單刪除成功！")
+
+# 用戶輸入
+st.header("保單推薦")
+age = st.number_input("年齡", min_value=18, max_value=100, value=30)
+gender = st.selectbox("性別", ["男性", "女性"])
+currency = st.selectbox("幣別", ["台幣", "美元"])
+term = st.number_input("保障年期", min_value=1, max_value=50, value=20)
+coverage = st.number_input("保額", min_value=100000, value=1000000)
+
+# 篩選適合的保單
+filtered_policies = policies[
+    (policies["min_age"] <= age) &
+    (policies["max_age"] >= age) &
+    (policies["gender"] == gender) &
+    (policies["currency"] == currency) &
+    (policies["term"] == term)
+]
+
+# 計算推薦順序（按保費低到高排序）
+recommended_policies = filtered_policies.sort_values(by="premium")
+
+# 顯示推薦結果
+st.write("推薦保單", recommended_policies)
