@@ -2,6 +2,16 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 
+# 保單資料載入函數 (確保資料為最新)
+@st.cache_data
+def load_policies():
+    policies = pd.read_csv("policies.csv")
+    if "policy_id" in policies.columns:
+        policies = policies.drop(columns=["policy_id"])
+    return policies
+
+policies = load_policies()
+
 # 讀取 secrets
 admin = st.secrets["users"]["admin"]
 user = st.secrets["users"]["user"]
@@ -38,18 +48,6 @@ if st.session_state["role"] is None:
 else:
     st.title("壽險保單推薦引擎")
 
-    # 保單資料載入函數 (確保資料為最新)
-    @st.cache_data
-    def load_policies():
-        policies = pd.read_csv("policies.csv")
-        if "繳費年期" not in policies.columns:
-            policies["繳費年期"] = "20年"
-        if "policy_id" in policies.columns:
-            policies = policies.drop(columns=["policy_id"])
-        return policies
-
-    policies = load_policies()
-
     # 管理界面（僅限 admin）
     if st.session_state["role"] == "admin":
         st.header("現有全部保單清單")
@@ -69,7 +67,7 @@ else:
     payment_term = st.text_input("繳費年期", key="payment_term_recommend")
 
     filtered_policies = policies.query(
-        "最低年齡 <= @age <= 最高年齡 and (性別 == @gender or 性別 == '不限') and 幣別 == @currency and 繳費年期 == @payment_term"
+        "最低年齡 <= @age <= 最高年齡 and (性別 == @gender or 性別 == '不限') and 幣別 == @currency and 年期選擇 == @payment_term"
     ).sort_values(by="保費")
 
     st.dataframe(filtered_policies)
