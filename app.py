@@ -5,9 +5,9 @@ from datetime import datetime
 # 加載保單數據
 policies = pd.read_csv("policies.csv")
 
-# 檢查 payment_term 欄位
-if "payment_term" not in policies.columns:
-    policies["payment_term"] = "20年"
+# 檢查繳費年期欄位
+if "繳費年期" not in policies.columns:
+    policies["繳費年期"] = "20年"
 
 # 讀取 secrets
 admin = st.secrets["users"]["admin"]
@@ -48,27 +48,26 @@ else:
     # 管理界面（僅限 admin）
     if st.session_state["role"] == "admin":
         st.header("現有全部保單清單")
-        st.dataframe(policies)
+        st.dataframe(policies.drop(columns=["保單編號"], errors="ignore"))
 
         st.sidebar.title("保單管理")
-        action = st.sidebar.selectbox("選擇操作", ["新增保單", "修改保單", "刪除保單"], key="admin_action")
+        action = st.sidebar.selectbox("選擇操作", ["新增保單"], key="admin_action")
 
         if action == "新增保單":
             st.sidebar.header("新增保單")
             new_policy = {
-                "policy_id": int(st.sidebar.number_input("保單編號", value=int(policies.policy_id.max())+1, key="new_policy_id")),
-                "company": st.sidebar.text_input("公司名稱", key="new_company"),
-                "product_name": st.sidebar.text_input("商品名稱", key="new_product_name"),
-                "term_options": st.sidebar.text_input("年期選擇（用斜杠分隔）", key="new_term_options"),
-                "policy_type": st.sidebar.text_input("保單類型", key="new_policy_type"),
-                "min_age": int(st.sidebar.number_input("最低年齡", 1, 85, key="new_min_age")),
-                "max_age": int(st.sidebar.number_input("最高年齡", 1, 85, 85, key="new_max_age")),
-                "gender": st.sidebar.selectbox("性別", ["所有性別", "男性", "女性"], key="new_gender"),
-                "currency": st.sidebar.selectbox("幣別", ["台幣", "美元"], key="new_currency"),
-                "payment_term": st.sidebar.text_input("繳費年期", key="new_payment_term"),
-                "term": int(st.sidebar.number_input("保障年期", 1, 50, key="new_term")),
-                "coverage": int(st.sidebar.number_input("保額", 100000, 120000000, key="new_coverage")),
-                "premium": int(st.sidebar.number_input("保費", 0, key="new_premium"))
+                "公司名稱": st.sidebar.text_input("公司名稱", key="new_company"),
+                "商品名稱": st.sidebar.text_input("商品名稱", key="new_product_name"),
+                "年期選擇": st.sidebar.text_input("年期選擇（用斜杠分隔）", key="new_term_options"),
+                "保單類型": st.sidebar.text_input("保單類型", key="new_policy_type"),
+                "最低年齡": int(st.sidebar.number_input("最低年齡", 1, 85, key="new_min_age")),
+                "最高年齡": int(st.sidebar.number_input("最高年齡", 1, 85, 85, key="new_max_age")),
+                "性別": st.sidebar.selectbox("性別", ["所有性別", "男性", "女性"], key="new_gender"),
+                "幣別": st.sidebar.selectbox("幣別", ["台幣", "美元"], key="new_currency"),
+                "繳費年期": st.sidebar.text_input("繳費年期", key="new_payment_term"),
+                "保障年期": int(st.sidebar.number_input("保障年期", 1, 50, key="new_term")),
+                "保額": int(st.sidebar.number_input("保額", 100000, 120000000, key="new_coverage")),
+                "保費": int(st.sidebar.number_input("保費", 0, key="new_premium"))
             }
             if st.sidebar.button("新增", key="add_policy"):
                 policies = pd.concat([policies, pd.DataFrame([new_policy])], ignore_index=True)
@@ -84,7 +83,7 @@ else:
     term = st.number_input("保障年期", 1, 50, 20, key="term_recommend")
 
     filtered_policies = policies.query(
-        "min_age <= @age <= max_age and (gender == @gender or gender == '所有性別') and currency == @currency and payment_term == @payment_term and term == @term"
-    ).sort_values(by="premium")
+        "最低年齡 <= @age <= 最高年齡 and (性別 == @gender or 性別 == '所有性別') and 幣別 == @currency and 繳費年期 == @payment_term and 保障年期 == @term"
+    ).sort_values(by="保費")
 
-    st.dataframe(filtered_policies)
+    st.dataframe(filtered_policies.drop(columns=["保單編號"], errors="ignore"))
