@@ -33,10 +33,11 @@ def login(username, password):
             return "expired"
     return None
 
-# 登入界面
+# 初始化 session_state
 if "role" not in st.session_state:
     st.session_state["role"] = None
 
+# 登入界面
 if st.session_state["role"] is None:
     st.header("登入")
     username = st.text_input("用戶名")
@@ -49,9 +50,11 @@ if st.session_state["role"] is None:
         elif role:
             st.session_state["role"] = role
             st.success("登入成功！")
+            st.experimental_rerun()  # 重新執行腳本，跳轉到下一個畫面
         else:
             st.error("用戶名或密碼錯誤！")
 else:
+    # 主界面
     st.title("壽險保單推薦引擎")
 
     # 管理界面（僅限 admin）
