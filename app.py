@@ -8,6 +8,10 @@ def load_policies():
     policies = pd.read_csv("policies.csv")
     if "policy_id" in policies.columns:
         policies = policies.drop(columns=["policy_id"])
+    # 調整欄位順序
+    cols = policies.columns.tolist()
+    cols.insert(2, cols.pop(cols.index("幣別")))
+    policies = policies[cols]
     return policies
 
 policies = load_policies()
