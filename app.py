@@ -73,7 +73,8 @@ else:
 
         with col2:
             if st.button("複製勾選的保單"):
-                rows_to_copy = edited_policies[edited_policies["複製"]].copy()
+                # 關鍵修正行在這裡！
+                rows_to_copy = edited_policies.loc[edited_policies["複製"] == True].copy()
                 if not rows_to_copy.empty:
                     rows_to_copy["複製"] = False
                     updated_policies = pd.concat([edited_policies, rows_to_copy], ignore_index=True)
